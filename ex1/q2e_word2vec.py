@@ -110,8 +110,8 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     sig_outer= sigmoid(np.dot(outputVectors[target], predicted))
 
     cost -= np.log(sig_outer)
-    grad[target] += predicted * (sig_outer - 1.0)
-    gradPred += outputVectors[target] * (sig_outer - 1.0)
+    grad[target] += predicted * (sig_outer - 1.0) # derive acc. to Uo
+    gradPred += outputVectors[target] * (sig_outer - 1.0) # derive acc. to Vc
 
     for k in xrange(K):
         sample = indices[k]
