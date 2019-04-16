@@ -39,10 +39,10 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     entropy loss.
 
     Arguments:
-    predicted -- numpy ndarray, predicted word vector (\hat{v} in
+    predicted (Vc) -- numpy ndarray, predicted word vector (\hat{v} in
                  the written component)
-    target -- integer, the index of the target word
-    outputVectors -- "output" vectors (as rows) for all tokens
+    target (Uo) -- integer, the index of the target word
+    outputVectors (Uw) -- "output" vectors (as rows) for all tokens
     dataset -- needed for negative sampling, unused here.
 
     Return:
@@ -57,16 +57,22 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     assignment!
     """
     ### YOUR CODE HERE
-    w = np.dot(outputVectors, predicted)
-    prob = softmax(w) # y_pred (V size)
+    w = np.dot(outputVectors, predicted) # (V,d) x (d,1) 
+    # prob[i] = p(oi/c) -- exp(Ui * Vc) / sigma exp(Ux * Vc) 
+    prob = softmax(w) # y_pred dim. (V,1)
 
     #  Cost:
-    cost = -np.log(prob[target])
+    cost = -np.log(prob[target]) # CE(y, y_c) = -Sigma y_i * log(y_pred_i)
 
-    prob[target] -= 1.0
+    prob[target] -= 1.0 # p(o/c) - 1
 
-    grad = np.outer(prob,predicted) # V * d
-    gradPred = np.dot(outputVectors.T, prob)
+    # Vc * P(x/c) and Vc * (p(o/c) - 1)
+    grad = np.zeros(outputVectors.shape)
+    grad += predicted
+    # [Vc]i * p(x/c) for each output vector x
+    grad = (grad.T * prob).T # v * d
+    # -Uo + sigma Ux * y_pred[x]
+    gradPred = np.dot(outputVectors.T, prob) # d * V * V * 1
     ### END YOUR CODE
     
     return cost, gradPred, grad
@@ -107,19 +113,18 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     gradPred = np.zeros(predicted.shape) # d size
     cost = 0
     # sigmoid(Uo dot Vc)
-    sig_outer= sigmoid(np.dot(outputVectors[target], predicted))
+    sig_outer = sigmoid(np.dot(outputVectors[target], predicted)) 
 
     cost -= np.log(sig_outer)
-    grad[target] += predicted * (sig_outer - 1.0) # derive acc. to Uo
-    gradPred += outputVectors[target] * (sig_outer - 1.0) # derive acc. to Vc
+    grad[target] = predicted * (sig_outer - 1.0) # derive acc. to Uo
+    gradPred = outputVectors[target] * (sig_outer - 1.0) # derive acc. to Vc
 
-    for k in xrange(K):
-        sample = indices[k]
+    for sample in indices[1:]:
         # sigmoid(-Uk dot Vc)
-        sig_val = sigmoid(-np.dot(outputVectors[sample], predicted))
+        sig_val = sigmoid(-1.0 * np.dot(outputVectors[sample], predicted))
         cost -= np.log(sig_val)
-        grad[sample] -= (sig_val - 1.0) * predicted 
-        gradPred -= (sig_val - 1.0) * outputVectors[sample] 
+        grad[sample] = (1.0 - sig_val) * predicted 
+        gradPred += (1.0 - sig_val) * outputVectors[sample] 
     ### END YOUR CODE
 
     return cost, gradPred, grad
@@ -183,7 +188,6 @@ def word2vec_sgd_wrapper(word2vecModel, tokens, wordVectors, dataset, C,
     for i in xrange(batchsize):
         C1 = random.randint(1,C)
         centerword, context = dataset.getRandomContext(C1)
-
         if word2vecModel == skipgram:
             denom = 1
         else:
@@ -225,11 +229,11 @@ def test_word2vec():
         dummy_vectors)
 
     print "\n=== Results ==="
-    print skipgram("c", 3, ["a", "b", "e", "d", "b", "c"],
-        dummy_tokens, dummy_vectors[:5,:], dummy_vectors[5:,:], dataset)
-    print skipgram("c", 1, ["a", "b"],
+    print(skipgram("c", 3, ["a", "b", "e", "d", "b", "c"],
+        dummy_tokens, dummy_vectors[:5,:], dummy_vectors[5:,:], dataset))
+    print(skipgram("c", 1, ["a", "b"],
         dummy_tokens, dummy_vectors[:5,:], dummy_vectors[5:,:], dataset,
-        negSamplingCostAndGradient)
+        negSamplingCostAndGradient))
 
 
 if __name__ == "__main__":
