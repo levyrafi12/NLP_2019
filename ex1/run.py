@@ -70,7 +70,7 @@ for i in xrange(len(visualizeWords)):
 plt.xlim((np.min(coord[:,0]), np.max(coord[:,0])))
 plt.ylim((np.min(coord[:,1]), np.max(coord[:,1])))
 
-plt.savefig('word_vectors.png')
+plt.savefig('q3_word_vectors.png')
 
 key_words = ["the", "unique", "superb", "comedy", "surprisingly"]
 inputVectors = wordVectors[:nWords]
